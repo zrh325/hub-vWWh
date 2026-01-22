@@ -42,7 +42,7 @@ loss_fn = nn.MSELoss()  # MSE损失函数
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # 使用Adam优化器
 
 # 4. 训练模型
-num_epochs = 1000
+num_epochs = 2000
 for epoch in range(num_epochs):
     # 前向传播
     y_pred = model(X)
