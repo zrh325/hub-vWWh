@@ -20,7 +20,12 @@ model = KNeighborsClassifier()
 model.fit(input_feature, dataset[1].values)
 ##
 client = OpenAI(
+    # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
+    # https://bailian.console.aliyun.com/?tab=model#/api-key
     api_key="sk-ktdvmzqutapsrdedjnvnsctkqivkapsgrjjmpgavyzxgfdos", # 账号绑定，用来计费的
+
+    # 大模型厂商的地址，阿里云
+    # base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     base_url="https://api.siliconflow.cn/v1"
 )
 
@@ -55,6 +60,8 @@ def llm_model(test_query):
     """},  # 用户的提问
         ]
     )
+    # return completion.choices[0].message.content
+    # print("待预测的文本", test_query)
     print("LLM模型预测结果: ", completion.choices[0].message.content)
 
 
@@ -62,3 +69,8 @@ def llm_model(test_query):
 if __name__ == '__main__':
     ml_model("明天天气怎么样")
     llm_model("明天天气怎么样")
+    # data = pd.read_csv("dataset.csv",sep = '\t',names = ['text','label'],nrows=100)
+    # print(data.head(10))
+    # print(data.shape)
+    #
+    # print(data[])
