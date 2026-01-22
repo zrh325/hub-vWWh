@@ -1,0 +1,287 @@
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+import matplotlib.pyplot as plt
+
+# ===================== 设置中文字体 =====================
+plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'SimHei', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
+
+# ===================== 数据集类定义 =====================
+class CharBoWDataset(Dataset):
+    """
+    字符级词袋(Bag of Words)数据集
+    将文本转换为词袋向量表示
+    """
+
+    def __init__(self, texts, labels, char_to_index, max_len, vocab_size):
+        self.texts = texts  # 原始文本列表
+        self.labels = torch.tensor(labels, dtype=torch.long)  # 标签转为张量
+        self.char_to_index = char_to_index  # 字符到索引的映射
+        self.max_len = max_len  # 文本最大长度
+        self.vocab_size = vocab_size  # 词表大小
+        self.bow_vectors = self._create_bow_vectors()  # 创建词袋向量
+
+    def _create_bow_vectors(self):
+        """将文本转换为词袋向量"""
+        tokenized_texts = []
+        for text in self.texts:
+            # 将每个字符转换为索引，未知字符用0表示
+            tokenized = [self.char_to_index.get(char, 0) for char in text[:self.max_len]]
+            # 填充到固定长度
+            tokenized += [0] * (self.max_len - len(tokenized))
+            tokenized_texts.append(tokenized)
+
+        bow_vectors = []
+        for text_indices in tokenized_texts:
+            # 创建词袋向量：统计每个字符出现的次数
+            bow_vector = torch.zeros(self.vocab_size)
+            for index in text_indices:
+                if index != 0:
+                    bow_vector[index] += 1
+            bow_vectors.append(bow_vector)
+        return torch.stack(bow_vectors)
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        return self.bow_vectors[idx], self.labels[idx]
+
+
+# ===================== 不同结构的模型定义 =====================
+
+class Model_1Layer(nn.Module):
+    """单层网络（无隐藏层）"""
+
+    def __init__(self, input_dim, output_dim):
+        super(Model_1Layer, self).__init__()
+        # 直接从输入到输出，相当于逻辑回归
+        self.fc1 = nn.Linear(input_dim, output_dim)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        return out
+
+
+class Model_2Layer_64(nn.Module):
+    """两层网络，隐藏层64个节点"""
+
+    def __init__(self, input_dim, output_dim):
+        super(Model_2Layer_64, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 64)  # 输入层 → 隐藏层(64)
+        self.relu = nn.ReLU()  # 激活函数
+        self.fc2 = nn.Linear(64, output_dim)  # 隐藏层 → 输出层
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+
+class Model_2Layer_128(nn.Module):
+    """两层网络，隐藏层128个节点（原始模型）"""
+
+    def __init__(self, input_dim, output_dim):
+        super(Model_2Layer_128, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 128)  # 输入层 → 隐藏层(128)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(128, output_dim)  # 隐藏层 → 输出层
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+
+class Model_2Layer_256(nn.Module):
+    """两层网络，隐藏层256个节点"""
+
+    def __init__(self, input_dim, output_dim):
+        super(Model_2Layer_256, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 256)  # 输入层 → 隐藏层(256)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(256, output_dim)  # 隐藏层 → 输出层
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+
+class Model_3Layer_128_64(nn.Module):
+    """三层网络，隐藏层128→64个节点"""
+
+    def __init__(self, input_dim, output_dim):
+        super(Model_3Layer_128_64, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 128)  # 输入层 → 隐藏层1(128)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(128, 64)  # 隐藏层1 → 隐藏层2(64)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(64, output_dim)  # 隐藏层2 → 输出层
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu1(out)
+        out = self.fc2(out)
+        out = self.relu2(out)
+        out = self.fc3(out)
+        return out
+
+
+class Model_4Layer_256_128_64(nn.Module):
+    """四层网络，隐藏层256→128→64个节点"""
+
+    def __init__(self, input_dim, output_dim):
+        super(Model_4Layer_256_128_64, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 256)  # 输入层 → 隐藏层1(256)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(256, 128)  # 隐藏层1 → 隐藏层2(128)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(128, 64)  # 隐藏层2 → 隐藏层3(64)
+        self.relu3 = nn.ReLU()
+        self.fc4 = nn.Linear(64, output_dim)  # 隐藏层3 → 输出层
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu1(out)
+        out = self.fc2(out)
+        out = self.relu2(out)
+        out = self.fc3(out)
+        out = self.relu3(out)
+        out = self.fc4(out)
+        return out
+
+
+# ===================== 训练函数 =====================
+def train_model(model, dataloader, num_epochs, model_name):
+    """
+    训练模型并记录每个epoch的loss
+
+    参数:
+        model: 神经网络模型
+        dataloader: 数据加载器
+        num_epochs: 训练轮数
+        model_name: 模型名称（用于打印）
+
+    返回:
+        epoch_losses: 每个epoch的平均loss列表
+    """
+    criterion = nn.CrossEntropyLoss()  # 交叉熵损失函数
+    optimizer = optim.SGD(model.parameters(), lr=0.01)  # SGD优化器
+
+    epoch_losses = []  # 记录每个epoch的loss
+
+    print(f"\n{'=' * 50}")
+    print(f"开始训练: {model_name}")
+    print(f"{'=' * 50}")
+
+    for epoch in range(num_epochs):
+        model.train()  # 设置为训练模式
+        running_loss = 0.0  # 累计loss
+
+        for inputs, labels in dataloader:
+            optimizer.zero_grad()  # 清空梯度
+            outputs = model(inputs)  # 前向传播
+            loss = criterion(outputs, labels)  # 计算损失
+            loss.backward()  # 反向传播
+            optimizer.step()  # 更新参数
+            running_loss += loss.item()  # 累加loss
+
+        # 计算平均loss
+        avg_loss = running_loss / len(dataloader)
+        epoch_losses.append(avg_loss)
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {avg_loss:.4f}")
+
+    return epoch_losses
+
+
+# ===================== 主程序 =====================
+if __name__ == "__main__":
+
+    # ---------- 1. 加载数据 ----------
+    print("正在加载数据...")
+    dataset = pd.read_csv("dataset.csv", sep="\t", header=None)
+    texts = dataset[0].tolist()  # 文本列表
+    string_labels = dataset[1].tolist()  # 标签列表
+
+    # 构建标签映射
+    label_to_index = {label: i for i, label in enumerate(set(string_labels))}
+    numerical_labels = [label_to_index[label] for label in string_labels]
+
+    # 构建字符词表
+    char_to_index = {'<pad>': 0}
+    for text in texts:
+        for char in text:
+            if char not in char_to_index:
+                char_to_index[char] = len(char_to_index)
+
+    vocab_size = len(char_to_index)  # 词表大小
+    output_dim = len(label_to_index)  # 输出类别数
+    max_len = 40  # 最大文本长度
+
+    print(f"词表大小: {vocab_size}")
+    print(f"类别数量: {output_dim}")
+    print(f"样本数量: {len(texts)}")
+
+    # ---------- 2. 创建数据集和数据加载器 ----------
+    char_dataset = CharBoWDataset(texts, numerical_labels, char_to_index, max_len, vocab_size)
+    dataloader = DataLoader(char_dataset, batch_size=32, shuffle=True)
+
+    # ---------- 3. 定义要对比的模型 ----------
+    models_config = [
+        ("1层网络 (无隐藏层)", Model_1Layer(vocab_size, output_dim)),
+        ("2层网络 (隐藏层64)", Model_2Layer_64(vocab_size, output_dim)),
+        ("2层网络 (隐藏层128)", Model_2Layer_128(vocab_size, output_dim)),
+        ("2层网络 (隐藏层256)", Model_2Layer_256(vocab_size, output_dim)),
+        ("3层网络 (128→64)", Model_3Layer_128_64(vocab_size, output_dim)),
+        ("4层网络 (256→128→64)", Model_4Layer_256_128_64(vocab_size, output_dim)),
+    ]
+
+    # ---------- 4. 训练所有模型并记录loss ----------
+    num_epochs = 10
+    all_losses = {}  # 存储所有模型的loss
+
+    for model_name, model in models_config:
+        losses = train_model(model, dataloader, num_epochs, model_name)
+        all_losses[model_name] = losses
+
+    # ---------- 5. 可视化对比结果 ----------
+    plt.figure(figsize=(12, 6))
+
+    # 为每个模型绘制loss曲线
+    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown']
+    for i, (model_name, losses) in enumerate(all_losses.items()):
+        plt.plot(range(1, num_epochs + 1), losses,
+                 label=model_name,
+                 color=colors[i],
+                 linewidth=2,
+                 marker='o')
+
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Different Model Structures - Loss Comparison')
+    plt.legend(loc='upper right')
+    plt.grid(True)
+    plt.xticks(range(1, num_epochs + 1))
+    plt.tight_layout()
+    plt.show()
+
+    # ---------- 6. 打印最终loss对比表 ----------
+    print("\n" + "=" * 60)
+    print("最终Loss对比")
+    print("=" * 60)
+    print(f"{'模型结构':<25} {'最终Loss':<10} {'参数量':<15}")
+    print("-" * 60)
+
+    for model_name, model in models_config:
+        final_loss = all_losses[model_name][-1]
+        # 计算模型参数量
+        param_count = sum(p.numel() for p in model.parameters())
+        print(f"{model_name:<25} {final_loss:<10.4f} {param_count:<15,}")
