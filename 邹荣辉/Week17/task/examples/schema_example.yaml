@@ -1,0 +1,35 @@
+# Example: Document Search Index Schema
+index:
+  name: document_search
+  prefix: doc
+  storage_type: hash
+
+fields:
+  - name: title
+    type: text
+    weight: 2.0
+
+  - name: content
+    type: text
+    weight: 1.0
+
+  - name: embedding
+    type: vector
+    dims: 384
+    algorithm: hnsw
+    distance_metric: cosine
+    datatype: float32
+    m: 16
+    ef_construction: 200
+    ef_runtime: 10
+
+  - name: category
+    type: tag
+    separator: ","
+
+  - name: year
+    type: numeric
+    sortable: true
+
+  - name: location
+    type: geo
