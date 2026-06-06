@@ -1,0 +1,18 @@
+{
+  "tests/test_service.py::TestHealthCheck::test_health_ok": true,
+  "tests/test_service.py::TestHealthCheck::test_health_degraded": true,
+  "tests/test_service.py::TestIndexRoutes::test_create_index": true,
+  "tests/test_service.py::TestIndexRoutes::test_list_indexes": true,
+  "tests/test_service.py::TestIndexRoutes::test_drop_index": true,
+  "tests/test_service.py::TestQueryRoutes::test_search": true,
+  "tests/test_service.py::TestCacheRoutes::test_lookup": true,
+  "tests/test_service.py::TestCacheRoutes::test_store": true,
+  "tests/test_service.py::TestMemoryRoutes::test_add_message": true,
+  "tests/test_service.py::TestMemoryRoutes::test_get_history": true,
+  "tests/test_service.py::TestMemoryRoutes::test_delete_session": true,
+  "tests/test_service.py::TestAgentRoutes::test_create_session": true,
+  "tests/test_service.py::TestAgentRoutes::test_get_session": true,
+  "tests/test_service.py::TestAuthMiddleware::test_no_api_key_401": true,
+  "tests/test_service.py::TestAuthMiddleware::test_valid_api_key": true,
+  "tests/test_service.py::TestMetricsEndpoint::test_metrics": true
+}
